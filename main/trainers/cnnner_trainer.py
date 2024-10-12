@@ -254,7 +254,7 @@ class Trainer():
     def eval(self, epoch, gpu=[0], is_eval=False, remove_clashed=False, nested=False):
         if is_eval:
             self.model_to_device(gpu=gpu)
-
+        self.metric_fn.reset()
         with torch.no_grad():
             eval_count = 0
             eval_loss = 0
