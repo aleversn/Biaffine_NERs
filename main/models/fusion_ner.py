@@ -23,6 +23,7 @@ class CNNNerv1(BertPreTrainedModel):
         self.cnn_depth = config.cnn_depth
         self.num_labels = config.num_labels
         self.span_threshold = config.span_threshold
+        self.ext_labels_start_idx = 8
 
         self.bert = BertModel(config, add_pooling_layer=False)
 
@@ -76,11 +77,11 @@ class CNNNerv1(BertPreTrainedModel):
         self.down_fc = nn.Linear(self.cnn_dim, self.num_labels-1)
         self.logit_drop = self.logit_drop
 
-    def decode_labels(self, labels: torch.Tensor, indexes: torch.Tensor, ignore_label_from: int = 8):
+    def decode_labels(self, labels: torch.Tensor, indexes: torch.Tensor):
         # 这里的labels不含有特殊的字符，因此不需要减去offset
         length: np.ndarray = indexes.detach().cpu().numpy()
         length = length.max(-1)
-        labels[:, :, :, ignore_label_from:] = 0
+        labels[:, :, :, self.ext_labels_start_idx:] = 0
         labels: np.ndarray = labels.detach().cpu().numpy()
         span_mask = (labels.max(-1) > self.span_threshold)
         labels = labels.argmax(-1)
@@ -104,7 +105,7 @@ class CNNNerv1(BertPreTrainedModel):
         """
         return (b[0] <= a[0] and a[1] <= b[1]) or (a[0] <= b[0] and b[1] <= a[1])
 
-    def decode_logits(self, scores: torch.Tensor, indexes: torch.Tensor, remove_clashed: bool = False, nested: bool = True, ignore_label_from: int = 8):
+    def decode_logits(self, scores: torch.Tensor, indexes: torch.Tensor, remove_clashed: bool = False, nested: bool = True):
         scores = scores.sigmoid()
         # 这里的scores也是没有特殊字符的
         # 按照论文代码里的解码方式是上下三角取平均
@@ -114,7 +115,7 @@ class CNNNerv1(BertPreTrainedModel):
         length: np.ndarray = indexes.detach().cpu().numpy()
         length = length.max(-1)
 
-        scores[:, :, :, ignore_label_from:] = 0
+        scores[:, :, :, self.ext_labels_start_idx:] = 0
         span_mask = (scores.max(-1) > self.span_threshold)
         argmax = scores.argmax(-1)
         indexes = np.where(span_mask)
@@ -147,7 +148,7 @@ class CNNNerv1(BertPreTrainedModel):
                 map(lambda x: (x[0], x[1], x[2]), entities[batch_idx]))
         return entities
 
-    def forward(self, input_ids: torch.Tensor, bpe_len: torch.Tensor, indexes: torch.Tensor, labels: torch.Tensor = None, decayed_label_from: int = 8, **kwargs):
+    def forward(self, input_ids: torch.Tensor, bpe_len: torch.Tensor, indexes: torch.Tensor, labels: torch.Tensor = None, **kwargs):
         # input_ids 就是常规的input_ids, [batch_size, seq_length, hidden_dim]
         # bpe_len 是flat tokens和[CLS]和[SEP]的长度, 不包括[PAD] [batch_size]
         # indexes 是每个字的坐标[0,1,...], [batch_size, seq_length, hidden_dim]
@@ -218,7 +219,7 @@ class CNNNerv1(BertPreTrainedModel):
             flat_scores = scores.reshape(-1)
             flat_matrix = labels.reshape(-1)
             decay_weights = torch.ones(labels.size()).to(flat_matrix.device)
-            decay_weights[:, :, :, decayed_label_from:] *= 0.13
+            decay_weights[:, :, :, self.ext_labels_start_idx:] *= 0.13
             decayed_weights = decay_weights.reshape(input_ids.size(0), -1)
             mask = flat_matrix.ne(-100).float().view(input_ids.size(0), -1)
             flat_loss = F.binary_cross_entropy_with_logits(
