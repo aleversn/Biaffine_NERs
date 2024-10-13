@@ -28,7 +28,7 @@ class Trainer():
                  test_file=None,
                  label_file=None,
                  batch_size=8,
-                 batch_size_eval=64,
+                 batch_size_eval=8,
                  n_head: int = 4,
                  cnn_dim: int = 200,
                  span_threshold: float = 0.5,

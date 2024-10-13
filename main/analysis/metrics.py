@@ -18,6 +18,7 @@ class SpanNERMetrics():
         # 按照类别来计算，并且默认第一位是O
         for i in range(1, len(self.labelTokenizer)):
             for pred_entities, gold_entities in zip(pred_entities_list, gold_entities_list):
+                # {{start, end, label_idx}} => {start, end, label_idx}
                 pred_type_entities = set(j for j in pred_entities if j[-1]==i)
                 gold_type_entities = set(j for j in gold_entities if j[-1]==i)
                 matches_number, pred_number, gold_number = len(pred_type_entities & gold_type_entities),len(pred_type_entities), len(gold_type_entities)
