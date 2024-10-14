@@ -315,7 +315,7 @@ class Trainer():
             eval_report = self.metric_fn.compute()
             table = PrettyTable()
 
-            table.field_names = ["Metric"] + [metric for metric in eval_report.keys()[:8]]
+            table.field_names = ["Metric"] + [metric for metric in eval_report.keys()][:8]
             table.add_row(["Scores"] + [round(score, 4) for score in eval_report.values()][:8])
             print(table)
 
