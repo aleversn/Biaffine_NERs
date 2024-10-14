@@ -66,6 +66,7 @@ class Trainer():
         self.warmup_steps = warmup_steps
 
         self.eval_mode = eval_mode
+        self.pred_gold = []
 
         self.dataloader_init()
         self.model_init()
@@ -216,8 +217,10 @@ class Trainer():
                     if report['f1'] > best_eval_score:
                         best_eval_score = report['f1']
                         self.save_model('best')
+                        self.analysis.save_list(uid=current_uid if self.task_name is None else self.task_name, filename='pred_gold_best.jsonl', content=self.pred_gold)
                     elif save_per_call:
                         self.save_model(train_step, '_step')
+                        self.analysis.save_list(uid=current_uid if self.task_name is None else self.task_name, filename=f'pred_gold_{train_step}.jsonl', content=self.pred_gold)
                     self.analysis.save_all_records(
                         uid=current_uid if self.task_name is None else self.task_name)
                     yield (epoch, self.analysis.train_record, self.analysis.eval_record, self.analysis.model_record, 'current_best')
@@ -250,11 +253,34 @@ class Trainer():
             f'./save_model/{dir}/cnnner{prefix}_{current_step}', safe_serialization=False)
         self.analysis.append_model_record(current_step)
         return current_step
+    
+    def update_pred_golds(self, preds, golds):
+        for preds, golds in zip(preds, golds):
+            item = {
+                'preds': [],
+                'golds': []
+            }
+            preds = list(preds)
+            for pred in preds:
+                item['preds'].append({
+                    'start': int(pred[0]),
+                    'end': int(pred[1]),
+                    'label': int(pred[2])
+                })
+            for gold in golds:
+                item['golds'].append({
+                    'start': int(gold[0]),
+                    'end': int(gold[1]),
+                    'label': int(gold[2])
+                })
+            self.pred_gold.append(item)
+        
 
     def eval(self, epoch, gpu=[0], is_eval=False, remove_clashed=False, nested=False):
         if is_eval:
             self.model_to_device(gpu=gpu)
         self.metric_fn.reset()
+        self.pred_gold = []
         with torch.no_grad():
             eval_count = 0
             eval_loss = 0
@@ -279,6 +305,7 @@ class Trainer():
                     scores, it["indexes"], remove_clashed, nested)
                 gold_entities: List[set] = model_self.decode_labels(
                     it["labels"], it["indexes"])
+                self.update_pred_golds(entities, gold_entities)
                 self.metric_fn.add(entities, gold_entities)
 
                 eval_iter.set_description(
@@ -288,8 +315,8 @@ class Trainer():
             eval_report = self.metric_fn.compute()
             table = PrettyTable()
 
-            table.field_names = ["Metric"] + [metric for metric in eval_report.keys()]
-            table.add_row(["Scores"] + [round(score, 4) for score in eval_report.values()])
+            table.field_names = ["Metric"] + [metric for metric in eval_report.keys()[:8]]
+            table.add_row(["Scores"] + [round(score, 4) for score in eval_report.values()][:8])
             print(table)
 
             self.analysis.append_eval_record({
