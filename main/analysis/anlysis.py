@@ -1,4 +1,5 @@
 import os
+import json
 import datetime
 import numpy as np
 
@@ -69,4 +70,14 @@ class Analysis():
         with open(f'{path}/{record_name}.csv', encoding='utf-8', mode='w+') as f:
             f.write(result)
 
+        return uid
+    
+    def save_list(self, filename, uid, content):
+        path = f'./data_record/{uid}'
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        with open(f'{path}/{filename}', mode='w+') as f:
+            for item in content:
+                f.write(json.dumps(item, ensure_ascii=False)+'\n')
         return uid

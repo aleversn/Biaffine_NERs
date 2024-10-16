@@ -5,3 +5,4 @@ dataset/
 save_model/
 **/**/__pycache__
 **/**/test.py
+outputs/
