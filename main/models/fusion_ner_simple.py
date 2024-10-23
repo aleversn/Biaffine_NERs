@@ -73,7 +73,6 @@ class CNNNerv1(BertPreTrainedModel):
         if self.cnn_depth > 0:
             self.cnn = MaskCNN(self.cnn_dim, self.cnn_dim,
                                kernel_size=self.kernel_size, depth=self.cnn_depth)
-        self.attn = LocalAttentionModel(self.cnn_dim, self.kernel_size)
 
         self.down_fc = nn.Linear(self.cnn_dim, self.num_labels-1)
         self.logit_drop = self.logit_drop
@@ -207,9 +206,8 @@ class CNNNerv1(BertPreTrainedModel):
                 u_scores = F.dropout(
                     u_scores, p=self.logit_drop, training=self.training)
             # bsz, num_label, max_len, max_len = u_scores.size()
-            # u_scores = self.cnn(u_scores, pad_mask)
-            u_scores = self.attn(u_scores.permute(0, 2, 3, 1), pad_mask=pad_mask.permute(0, 2, 3, 1))
-            scores = u_scores.permute(0, 3, 1, 2) + scores
+            u_scores = self.cnn(u_scores, pad_mask)
+            scores = u_scores + scores
         
         # 把dim作为尾部对准fc
         scores = self.down_fc(scores.permute(0, 2, 3, 1))
@@ -229,67 +227,6 @@ class CNNNerv1(BertPreTrainedModel):
             loss = ((flat_loss.view(input_ids.size(0), -1)*decayed_weights*mask).sum(dim=-1)).mean()
 
         return loss, scores
-
-class LocalSpanAttention(nn.Module):
-    def __init__(self, dim):
-        super(LocalSpanAttention, self).__init__()
-        self.attn = nn.MultiheadAttention(embed_dim=dim, num_heads=10)
-
-    def forward(self, x, span_mask):
-        """
-        :param x: [bsz, len, len, dim] 输入特征矩阵
-        :param span_mask: [bsz, len, len] mask矩阵，用于控制attention的感受野
-        """
-        bsz, length, _, dim = x.shape  # 获取输入的形状
-
-        # 将输入 reshape 为 [bsz * len, len, dim]，使其适合 MultiheadAttention 操作
-        x = x.view(bsz * length, length, dim)  # 展平前两维，准备进行 attention
-
-        # 转换为 [len, bsz * len, dim]，用于MultiheadAttention
-        x = x.transpose(0, 1)
-
-        # 注意力计算时需要传入mask
-        attention_output, _ = self.attn(x, x, x, attn_mask=span_mask)
-
-        # 恢复为 [bsz * len, len, dim] 的形状
-        attention_output = attention_output.transpose(0, 1).view(bsz, length, length, dim)
-
-        return attention_output
-
-class LocalAttentionModel(nn.Module):
-    def __init__(self, dim, window_size=3):
-        super(LocalAttentionModel, self).__init__()
-        self.local_attention = LocalSpanAttention(dim)
-        self.norm = nn.LayerNorm(dim)
-        self.window_size = window_size
-
-    def generate_local_mask(self, seq_len, window_size):
-        # 构建局部注意力的 mask，只允许相邻的 token 进行交互
-        mask = torch.full((seq_len, seq_len), float('-inf'))  # 初始化为全 -inf
-        for i in range(seq_len):
-            start = max(0, i - window_size)
-            end = min(seq_len, i + window_size + 1)
-            mask[i, start:end] = 0  # 允许局部的 token 进行交互
-        return mask
-
-    def forward(self, x, pad_mask):
-        """
-        :param x: [bsz, len, len, dim] 输入特征
-        """
-        bsz, length, _, dim = x.shape
-        
-        # 生成局部 mask，控制每个 span 的注意力范围
-        local_mask = self.generate_local_mask(length, self.window_size)
-        local_mask = local_mask.to(x.device)  # 确保 mask 和输入在同一设备上
-
-        # 对每个样本的局部span进行 attention
-        x = x.masked_fill(pad_mask, 0)
-        attn_output = self.local_attention(x, local_mask)
-
-        # 使用 LayerNorm 进行正则化
-        output = self.norm(attn_output)
-
-        return output
 
 
 class LayerNorm(nn.Module):
