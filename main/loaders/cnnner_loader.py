@@ -37,10 +37,11 @@ class CNNNERDataset(Dataset):
     def process_dataset(self):
         process_data = []
         for sample in tqdm(self.data, desc="converting data..."):
-            process_data.append(self.transform(sample))
+            process_data.append(CNNNERDataset.transform(self.tokenizer, self.labelTokenizer, sample, self.num_labels))
         return process_data
-
-    def transform(self, sample: Dict[str, any]):
+    
+    @staticmethod
+    def transform(tokenizer, labelTokenizer, sample: Dict[str, any], num_labels):
         convert_sample = {
             "input_ids": None,
             "bpe_len": None,
@@ -48,32 +49,39 @@ class CNNNERDataset(Dataset):
             "indexes": None
         }
         text, entities = sample["text"], sample["entities"]
-        pieces = list(self.tokenizer.tokenize(word) for word in text)
-        pieces = list(self.tokenizer.unk_token if len(
+        mask_ori = 0
+        # 用于测试混入dev和test数据集, 数据集会带有mask标识来告知模型是否mask原始标签
+        if 'mask_ori' in sample:
+            mask_ori = 1 if sample['mask_ori'] else 0
+        pieces = list(tokenizer.tokenize(word) for word in text)
+        pieces = list(tokenizer.unk_token if len(
             piece) == 0 else piece for piece in pieces)
         flat_tokens = [i for piece in pieces for i in piece]
         length = len(text)
         bert_length = len(flat_tokens) + 2
-        input_ids = torch.tensor([self.tokenizer.cls_token_id] + self.tokenizer.convert_tokens_to_ids(
-            flat_tokens) + [self.tokenizer.sep_token_id], dtype=torch.long)
+        input_ids = torch.tensor([tokenizer.cls_token_id] + tokenizer.convert_tokens_to_ids(
+            flat_tokens) + [tokenizer.sep_token_id], dtype=torch.long)
         labels = torch.zeros(
-            (length, length, self.num_labels), dtype=torch.long)
+            (length, length, num_labels), dtype=torch.long)
+        if 'synetic' in sample and sample['synetic']:
+            labels[:] = -100
         for entity in entities:
             start, end, label = entity["start"], entity["end"] - \
                 1, entity["entity"]
-            label_id = self.labelTokenizer.convert_tokens_to_ids(label)
+            label_id = labelTokenizer.convert_tokens_to_ids(label)
             labels[start, end, label_id-1] = 1
             # 原论文中是计算的上下三角形，但是实际的话是只使用上边的三角形效果好
             # labels[end, start, label_id-1] = 1
         indexes = torch.zeros(bert_length, dtype=torch.long)
-        offset = 1
+        offset = 0
         for i, piece in enumerate(pieces):
-            indexes[offset: offset+len(piece) + 1] = i + 1
+            indexes[offset+1: offset+len(piece) + 1] = i + 1
             offset += len(piece)
         convert_sample["input_ids"] = input_ids
         convert_sample["bpe_len"] = torch.tensor(bert_length, dtype=torch.long)
         convert_sample["labels"] = labels
         convert_sample["indexes"] = indexes
+        convert_sample['mask_ori'] = torch.tensor(mask_ori)
         return convert_sample
 
     def __getitem__(self, index) -> Any:
@@ -117,7 +125,8 @@ class CNNNERPadCollator:
             "input_ids": self.pad_1d(list(i["input_ids"] for i in samples), 0),
             "bpe_len": torch.stack(list(i["bpe_len"] for i in samples)),
             "labels": self.pad_2d(list(i["labels"] for i in samples), 0),
-            "indexes": self.pad_1d(list(i["indexes"] for i in samples), 0)
+            "indexes": self.pad_1d(list(i["indexes"] for i in samples), 0),
+            "mask_ori": torch.stack(list(i["mask_ori"] for i in samples))
         }
 
         return convert_example
