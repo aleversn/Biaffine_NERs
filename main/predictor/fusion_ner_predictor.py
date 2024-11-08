@@ -63,6 +63,7 @@ class FusionNERPredictor(Predictor):
         self.config.logit_drop = self.logit_drop
         self.config.kernel_size = self.kernel_size
         self.config.cnn_depth = self.cnn_depth
+        self.config.num_target_labels = len(self.labelTokenizer) if self.num_target_labels is None else self.num_target_labels
         self.model = CNNNerv1.from_pretrained(
             self.from_pretrained, config=self.config)
         

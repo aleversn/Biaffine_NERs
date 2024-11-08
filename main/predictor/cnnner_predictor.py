@@ -68,6 +68,7 @@ class Predictor():
     def load_labels(self):
         self.labelTokenizer = LabelTokenizer(self.label_file)
         self.num_labels = len(self.labelTokenizer) - 1
+        self.num_target_labels = self.labelTokenizer.ori_label_count - 1
 
     def model_to_device(self, gpu=[0]):
         if self.model_loaded:
@@ -116,13 +117,14 @@ class Predictor():
                 for idx, item_entities in enumerate(entities):
                     item_result = []
                     for entity in item_entities:
-                        if entity[2] in skip_label_idxs:
+                        start, end, label_idx = int(entity[0]), int(entity[1]) + 1, int(entity[2])
+                        if label_idx in skip_label_idxs:
                             continue
                         item_result.append({
-                            'start': entity[0],
-                            'end': entity[1] + 1,
-                            'entity': self.labelTokenizer.convert_ids_to_tokens(entity[2]),
-                            'text': list(batch_inputs[idx][entity[0]:entity[1] + 1])
+                            'start': start,
+                            'end': end,
+                            'entity': self.labelTokenizer.convert_ids_to_tokens(label_idx),
+                            'text': list(batch_inputs[idx][start:end])
                         })
                     result.append(item_result)
                 yield result

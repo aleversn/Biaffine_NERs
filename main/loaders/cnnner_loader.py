@@ -50,9 +50,12 @@ class CNNNERDataset(Dataset):
         }
         text, entities = sample["text"], sample["entities"]
         mask_ori = 0
+        is_synthetic = 0
         # 用于测试混入dev和test数据集, 数据集会带有mask标识来告知模型是否mask原始标签
         if 'mask_ori' in sample:
             mask_ori = 1 if sample['mask_ori'] else 0
+        if 'synthetic' in sample:
+            is_synthetic = 1 if sample['synthetic'] else 0
         pieces = list(tokenizer.tokenize(word) for word in text)
         pieces = list(tokenizer.unk_token if len(
             piece) == 0 else piece for piece in pieces)
@@ -63,8 +66,6 @@ class CNNNERDataset(Dataset):
             flat_tokens) + [tokenizer.sep_token_id], dtype=torch.long)
         labels = torch.zeros(
             (length, length, num_labels), dtype=torch.long)
-        if 'synetic' in sample and sample['synetic']:
-            labels[:] = -100
         for entity in entities:
             start, end, label = entity["start"], entity["end"] - \
                 1, entity["entity"]
@@ -82,6 +83,7 @@ class CNNNERDataset(Dataset):
         convert_sample["labels"] = labels
         convert_sample["indexes"] = indexes
         convert_sample['mask_ori'] = torch.tensor(mask_ori)
+        convert_sample['is_synthetic'] = torch.tensor(is_synthetic, dtype=torch.long)
         return convert_sample
 
     def __getitem__(self, index) -> Any:
@@ -126,7 +128,8 @@ class CNNNERPadCollator:
             "bpe_len": torch.stack(list(i["bpe_len"] for i in samples)),
             "labels": self.pad_2d(list(i["labels"] for i in samples), 0),
             "indexes": self.pad_1d(list(i["indexes"] for i in samples), 0),
-            "mask_ori": torch.stack(list(i["mask_ori"] for i in samples))
+            "mask_ori": torch.stack(list(i["mask_ori"] for i in samples)),
+            'is_synthetic': torch.stack(list(i['is_synthetic'] for i in samples))
         }
 
         return convert_example

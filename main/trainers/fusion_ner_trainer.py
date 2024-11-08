@@ -85,6 +85,7 @@ class Trainer():
         self.config.logit_drop = self.logit_drop
         self.config.kernel_size = self.kernel_size
         self.config.cnn_depth = self.cnn_depth
+        self.config.num_target_labels = len(self.labelTokenizer) if self.num_target_labels is None else self.num_target_labels
         self.model = CNNNerv1.from_pretrained(
             self.from_pretrained, config=self.config)
 
@@ -120,6 +121,10 @@ class Trainer():
                 self.data_present_path)[self.data_name]
 
         self.labelTokenizer = LabelTokenizer(self.data_path['labels'])
+        self.label_weights = torch.tensor(self.labelTokenizer.label_weights[1:])
+        self.label_weights = self.cuda(self.label_weights)
+        self.num_target_labels = self.labelTokenizer.ori_label_count - 1
+        print(f'Total target labels: {self.num_target_labels} label weights', self.label_weights)
 
         collate_fn = CNNNERPadCollator()
 
@@ -194,7 +199,7 @@ class Trainer():
                     if isinstance(it[key], torch.Tensor):
                         it[key] = self.cuda(it[key])
 
-                loss = self.model(**it)[0]
+                loss = self.model(**it, label_weights=self.label_weights)[0]
                 loss = loss.mean()
 
                 loss.backward()

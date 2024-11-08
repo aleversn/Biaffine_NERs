@@ -23,7 +23,7 @@ class CNNNerv1(BertPreTrainedModel):
         self.cnn_depth = config.cnn_depth
         self.num_labels = config.num_labels
         self.span_threshold = config.span_threshold
-        self.ext_labels_start_idx = 8
+        self.ext_labels_start_idx = config.num_target_labels
 
         self.bert = BertModel(config, add_pooling_layer=False)
 
@@ -149,7 +149,7 @@ class CNNNerv1(BertPreTrainedModel):
                 map(lambda x: (x[0], x[1], x[2]), entities[batch_idx]))
         return entities
 
-    def forward(self, input_ids: torch.Tensor, bpe_len: torch.Tensor, indexes: torch.Tensor, labels: torch.Tensor = None, **kwargs):
+    def forward(self, input_ids: torch.Tensor, bpe_len: torch.Tensor, indexes: torch.Tensor, labels: torch.Tensor = None, label_weights: torch.Tensor = None, is_synthetic: torch.Tensor = None, **kwargs):
         # input_ids 就是常规的input_ids, [batch_size, seq_length, hidden_dim]
         # bpe_len 是flat tokens和[CLS]和[SEP]的长度, 不包括[PAD] [batch_size]
         # indexes 是每个字的坐标[0,1,...], [batch_size, seq_length, hidden_dim]
@@ -218,15 +218,20 @@ class CNNNerv1(BertPreTrainedModel):
 
         loss = None
         if labels is not None:
+            if label_weights is None:
+                label_weights = 0.13
             flat_scores = scores.reshape(-1)
             flat_matrix = labels.reshape(-1)
             decay_weights = torch.ones(labels.size()).to(flat_matrix.device)
-            decay_weights[:, :, :, self.ext_labels_start_idx:] *= 0.13
+            decay_weights *= label_weights
             decayed_weights = decay_weights.reshape(input_ids.size(0), -1)
+            synthetic_mask = torch.ones(labels.size()).to(flat_matrix.device)
+            synthetic_mask[:, is_synthetic] *= 1
+            synthetic_weights = synthetic_mask.reshape(input_ids.size(0), -1)
             mask = flat_matrix.ne(-100).float().view(input_ids.size(0), -1)
             flat_loss = F.binary_cross_entropy_with_logits(
                 flat_scores, flat_matrix.float(), reduction='none')
-            loss = ((flat_loss.view(input_ids.size(0), -1)*decayed_weights*mask).sum(dim=-1)).mean()
+            loss = ((flat_loss.view(input_ids.size(0), -1)*synthetic_weights*decayed_weights*mask).sum(dim=-1)).mean()
 
         return loss, scores
 
