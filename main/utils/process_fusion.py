@@ -27,7 +27,7 @@
 #             json_repair.loads(item[1])
 #     return labels_dict
 
-# labels_dict = collect_label(files_list=['/home/lpc/repos/CNNNER/datasets/few_shot/cmeee_DA/entity_train_1000.json', '/home/lpc/repos/CNNNER/datasets/few_shot/cmeee_DA/entity_train_1000.json'])
+# labels_dict = collect_label(files_list=['/home/lpc/repos/CNNNER/datasets/few_shot/ud_DA/entity_train_1000.json', '/home/lpc/repos/CNNNER/datasets/few_shot/ud_DA/entity_train_1000.json'])
 
 # %% [markdown]
 # 读取entity和pos的label_dict并进行校正处理,获得label_format函数
@@ -73,7 +73,7 @@ for key in label_dict:
     for key_item in label_dict[key]:
         label_format_dict[key_item] = key
 
-def label_format(key, distinct_pos=False):
+def label_format(key, distinct_pos=False, prefix=''):
     key = key.strip()
     if distinct_pos and key in ['OTHER']:
         if 'POS' not in count_dict:
@@ -83,12 +83,13 @@ def label_format(key, distinct_pos=False):
         return 'POS'
     if key in label_format_dict:
         format_key = label_format_dict[key]
+        format_key = prefix + format_key
         if format_key not in count_dict:
             count_dict[format_key] = 1
         else:
             count_dict[format_key] += 1
         return format_key
-    count_dict['OTHER'] += 1
+    count_dict[prefix + 'OTHER'] += 1
     if key not in except_dict:
         except_dict[key] = 1
     else:
@@ -101,10 +102,10 @@ label_format('OTHER')
 # %%
 import os
 from copy import deepcopy
-LABEL_FILE = '/home/lpc/repos/CNNNER/datasets/few_shot/cmeee/labels.txt'
-ORI_FILE = '/home/lpc/repos/CNNNER/datasets/few_shot/cmeee/train_1000.jsonl'
-EXT_ENTITY_FILE = '/home/lpc/repos/CNNNER/datasets/few_shot/cmeee_DA/1000/entity_train_1000.jsonl'
-EXT_POS_FILE = '/home/lpc/repos/CNNNER/datasets/few_shot/cmeee_DA/1000/pos_train_1000.jsonl'
+LABEL_FILE = '/home/lpc/repos/CNNNER/datasets/few_shot/ud/labels.txt'
+ORI_FILE = '/home/lpc/repos/CNNNER/datasets/few_shot/ud_DA/1000/train_1000_synthetic.jsonl'
+EXT_ENTITY_FILE = '/home/lpc/repos/CNNNER/datasets/few_shot/ud_DA/1000/entity_train_1000_synthetic.jsonl'
+EXT_POS_FILE = '/home/lpc/repos/CNNNER/datasets/few_shot/ud_DA/1000/pos_train_1000_synthetic.jsonl'
 DISABLED_ORI_LABELS = False
 SAVE_FILE = os.path.join(os.path.dirname(ORI_FILE), os.path.splitext(os.path.basename(ORI_FILE))[0] + '_fusion{}.jsonl'.format('_mask' if DISABLED_ORI_LABELS else ''))
 IGNORE_LABELS = []
@@ -212,7 +213,7 @@ for label in dataset_fusion_labels:
         'is_target': False
     }
     idx += 1
-with open('/home/lpc/repos/CNNNER/datasets/few_shot/cmeee_DA/1000/labels_fusion.json', 'w') as f:
+with open('/home/lpc/repos/CNNNER/datasets/few_shot/ud_DA/1000/labels_fusion.json', 'w') as f:
     json.dump(final_labels, f, ensure_ascii=False)
 
 # %%

@@ -41,14 +41,14 @@ class CNNNERDataset(Dataset):
         return process_data
     
     @staticmethod
-    def transform(tokenizer, labelTokenizer, sample: Dict[str, any], num_labels):
+    def transform(tokenizer, labelTokenizer, sample: Dict[str, any], num_labels, model_len=512):
         convert_sample = {
             "input_ids": None,
             "bpe_len": None,
             "labels": None,
             "indexes": None
         }
-        text, entities = sample["text"], sample["entities"]
+        text, entities = sample["text"][:model_len - 2], sample["entities"]
         mask_ori = 0
         is_synthetic = 0
         # 用于测试混入dev和test数据集, 数据集会带有mask标识来告知模型是否mask原始标签
@@ -67,6 +67,8 @@ class CNNNERDataset(Dataset):
         labels = torch.zeros(
             (length, length, num_labels), dtype=torch.long)
         for entity in entities:
+            if entity["start"] > model_len - 3 or entity["end"] > model_len - 3:
+                continue
             start, end, label = entity["start"], entity["end"] - \
                 1, entity["entity"]
             label_id = labelTokenizer.convert_tokens_to_ids(label)
