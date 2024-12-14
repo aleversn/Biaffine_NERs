@@ -6,10 +6,11 @@
 
 - Weight decay
     - Resume: 0.01
+    - POS 1000: 0.01
     - Others: 0.001
 
 - Batch size
-    - K <= 1000: 4
+    - K <= 1000: POS 8, Others: 4
     - K > 1000: 8
 
 - synthetic_weights
