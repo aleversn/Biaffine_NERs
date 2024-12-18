@@ -12,7 +12,7 @@ with open('/home/lpc/repos/CNNNER/datasets/few_shot/ud/test.jsonl') as f:
     ori_data = f.readlines()
 ori_data = [json.loads(i) for i in ori_data]
 
-with open('/home/lpc/repos/CNNNER/data_record/llm_ner/ud_GLM4_LLM_Infer/entity_test.jsonl') as f:
+with open('/home/lpc/repos/CNNNER/data_record/llm_ner/LoRA/ud_GLM3_LLMLoRA_Infer/entity_test.jsonl') as f:
     pred_data = f.readlines()
 preds_list = []
 for line in pred_data:
@@ -24,15 +24,24 @@ for line in pred_data:
     except:
         pred_json = []
     format_pred_json = []
+    format_pred_json_dict = {}
     for item in pred_json:
-        if type(item) != dict or 'text' not in item or 'entity' not in item or item['entity'] not in label_dict:
+        if type(item) != dict or 'text' not in item or 'entity' not in item or str(item['entity']) not in label_dict:
             continue
+        item['entity'] = str(item['entity'])
         t = item['text']
+        if type(t) == list:
+            t = [str(ti) for ti in t]
+            t = ''.join(t)
         start = text.find(t)
         if start == -1:
             continue
         end = start + len(t)
-        format_pred_json.append({'start': start, 'end': end, 'text': list(t), 'label': label_dict[item['entity']]})
+        if start not in format_pred_json_dict:
+            format_pred_json_dict[start] = {}
+            if end not in format_pred_json_dict[start]:
+                format_pred_json_dict[start][end] = 1
+                format_pred_json.append({'start': start, 'end': end, 'text': list(t), 'label': label_dict[item['entity']]})
     
     preds_list.append(format_pred_json)
 
