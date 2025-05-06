@@ -13,6 +13,7 @@ parser.add_argument('--file_dir', default='./data/few_shot', help='file name')
 parser.add_argument('--file_name', default='youku', help='file name of the dataset, you should make sure it contains `train_1000.jsonl` file')
 parser.add_argument('--is_syn', default=1, help='is process synthetic file')
 parser.add_argument('--save_type_name', default='GLM4', help='the prefix name of save dir (usually is the LLM name)')
+parser.add_argument('--dense_lang', default='0', help='whether the language is character-dense language')
 parser.add_argument('--label_prefix', default='', help='label prefix')
 parser.add_argument('--entity_label', default='./data/fusion_knowledge/entity_label.json', help='label format')
 parser.add_argument('--pos_label', default='./data/fusion_knowledge/pos_label.json', help='label format')
@@ -28,6 +29,8 @@ label_dict = {
 
 count_dict = {}
 except_dict = {}
+
+SPLIT_TAG = '' if str(args.dense_lang) == '1' else ' '
 
 
 def update_label_dict(file_name):
@@ -130,9 +133,12 @@ for idx, item in enumerate(tqdm(ori_list)):
     if not isinstance(json_item, list):
         continue
     for item in json_item:
-        if 'entity' not in item or 'type' not in item: continue
+        if type(item) != dict or 'entity' not in item or 'type' not in item: continue
         entity, entity_type = str(item['entity']), item['type']
-        ent_len = len(entity)
+        if str(args.dense_lang) == '1':
+            ent_len = len(entity)
+        else:
+            ent_len = len(re.findall(r'\w+|\S', entity))
         if ent_len <= 1:
             continue
         entity_type = label_format(entity_type)
@@ -142,7 +148,7 @@ for idx, item in enumerate(tqdm(ori_list)):
             dataset_fusion_labels.append(entity_type)
         ori_text_list = ori_data[idx]['text']
         for i in range(len(ori_text_list) - ent_len + 1):
-            if ''.join(ori_text_list[i:i+ent_len]) == entity:
+            if SPLIT_TAG.join(ori_text_list[i:i+ent_len]) == entity:
                 if i not in exists_2d:
                     exists_2d[i] = {}
                     if (i + ent_len) not in exists_2d[i]:
@@ -159,9 +165,12 @@ for idx, item in enumerate(tqdm(ori_list)):
     if not isinstance(json_item, list):
         continue
     for item in json_item:
-        if 'word' not in item or 'pos' not in item: continue
+        if type(item) != dict or 'word' not in item or 'pos' not in item: continue
         entity, entity_type = str(item['word']), item['pos']
-        ent_len = len(entity)
+        if str(args.dense_lang) == '1':
+            ent_len = len(entity)
+        else:
+            ent_len = len(re.findall(r'\w+|\S', entity))
         if ent_len <= 1:
             continue
         entity_type = label_format(entity_type)
@@ -171,7 +180,7 @@ for idx, item in enumerate(tqdm(ori_list)):
             dataset_fusion_labels.append(entity_type)
         ori_text_list = ori_data[idx]['text']
         for i in range(len(ori_text_list) - ent_len + 1):
-            if ''.join(ori_text_list[i:i+ent_len]) == entity:
+            if SPLIT_TAG.join(ori_text_list[i:i+ent_len]) == entity:
                 if i not in exists_2d:
                     exists_2d[i] = {}
                     if (i + ent_len) not in exists_2d[i]:

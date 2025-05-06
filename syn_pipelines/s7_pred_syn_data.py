@@ -16,6 +16,7 @@ parser.add_argument('--file_name', default='youku', help='file name of the datas
 parser.add_argument('--save_type_name', default='GLM4', help='the prefix name of save dir (usually is the LLM name)')
 parser.add_argument('--from_pretrained', default='/home/lpc/models/chinese-bert-wwm-ext/', help='model from pretrained')
 parser.add_argument('--model_from_pretrained', default='/home/lpc/repos/Biaffine_NERs/save_model/CNNNER-youku_1000_fusion_sota/cnnner_best', help='model from pretrained')
+parser.add_argument('--dense_lang', default='0', help='whether the language is character-dense language')
 parser.add_argument('--batch_size', default=4, help='batch size')
 
 if not cmd_args:
@@ -39,7 +40,10 @@ pred = FusionNERPredictor(tokenizer=tokenizer, config=config, from_pretrained=ar
 with open(SOURCE_FILE) as f:
     ori_data = f.readlines()
 data = [json.loads(i) for i in ori_data]
-data_text = [''.join(i['text']) for i in data]
+if str(args.dense_lang) == '1':
+    data_text = [''.join(i['text']) for i in data]
+else:
+    data_text = [i['text'] for i in data]
 entities_list = []
 
 for entities in pred(data_text):

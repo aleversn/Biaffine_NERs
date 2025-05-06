@@ -11,12 +11,13 @@ import random
 
 class CNNNERDataset(Dataset):
 
-    def __init__(self, tokenizer: BertTokenizer, labelTokenizer: LabelTokenizer, filename: str, shuffle=False) -> None:
+    def __init__(self, tokenizer: BertTokenizer, labelTokenizer: LabelTokenizer, filename: str, k_shot=None, shuffle=False) -> None:
         super().__init__()
         self.tokenizer = tokenizer
         self.labelTokenizer = labelTokenizer
         self.filename = filename
         self.num_labels = len(self.labelTokenizer)-1
+        self.k_shot = k_shot
         self.data = self.load_jsonl()
         self.process_data = self.process_dataset()
         self.shuffle_list = [i for i in range(len(self.process_data))]
@@ -93,6 +94,8 @@ class CNNNERDataset(Dataset):
         return self.process_data[index]
 
     def __len__(self) -> int:
+        if self.k_shot is not None:
+            return self.k_shot
         return len(self.process_data)
 
 
