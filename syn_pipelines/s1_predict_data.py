@@ -15,6 +15,7 @@ parser.add_argument('--file_name', default='cmeee', help='file name of the datas
 parser.add_argument('--save_type_name', default='GLM4', help='the prefix name of save dir (usually is the LLM name)')
 parser.add_argument('--model_from_pretrained', default='/home/lpc/models/glm-4-9b-chat/', help='model from pretrained')
 parser.add_argument('--batch_size', default=20, help='batch size')
+parser.add_argument('--dense_lang', default='0', help='whether the language is character-dense language')
 parser.add_argument('--mode', default='entity', help='predict entity or pos')
 
 if not cmd_args:
@@ -54,9 +55,10 @@ ori_data = [json.loads(i) for i in ori_data]
 selected_data = ori_data[int(args.skip):] if int(args.skip) > -1 else ori_data
 data = []
 
+SPLIT_TAG = '' if str(args.dense_lang) == '1' else ' '
 for item in tqdm(ori_data):
     text = item['text']
-    text = ''.join(text)
+    text = SPLIT_TAG.join(text)
     user_content = prompt_dict[MODE] + text
     data.append((user_content, text))
 
