@@ -3,20 +3,23 @@ import json
 import json_repair
 import numpy as np
 
-with open('/home/lpc/repos/CNNNER/datasets/few_shot/ud/labels.txt') as f:
+with open('/home/lpc/repos/Biaffine_NERs/datasets/few_shot/msr/labels.txt') as f:
     label_data = f.readlines()
 label_data = [label.strip() for label in label_data]
 label_dict = {label: i for i, label in enumerate(label_data)}  # Map label to index
 
-with open('/home/lpc/repos/CNNNER/datasets/few_shot/ud/test.jsonl') as f:
+with open('/home/lpc/repos/Biaffine_NERs/datasets/few_shot/msr/test.jsonl') as f:
     ori_data = f.readlines()
 ori_data = [json.loads(i) for i in ori_data]
 
-with open('/home/lpc/repos/CNNNER/data_record/llm_ner/LoRA/ud_GLM3_LLMLoRA_Infer/entity_test.jsonl') as f:
+with open('/home/lpc/repos/Biaffine_NERs/data_record/llm_ner/msr_Qwen3_32B_LLM_Infer/entity_test.jsonl') as f:
     pred_data = f.readlines()
 preds_list = []
 for line in pred_data:
-    text, pred_json = line.split('\t')
+    line = line.split('\t')
+    text, pred_json = line[0], line[1]
+    if pred_json.find('</think>') >= 0:
+        pred_json = pred_json.split('</think>')[1]
     try:
         pred_json = json_repair.loads(pred_json)
         if type(pred_json) != list:

@@ -8,11 +8,11 @@ from argparse import ArgumentParser
 # if you want to run through jupyter, please set it as false.
 import sys
 sys.path.append("../")
-cmd_args = True
+cmd_args = False
 # 添加 参数 n_gpu
 parser = ArgumentParser()
-parser.add_argument('--file_dir', default='/home/lpc/repos/Biaffine_NERs/data/few_shot', help='file name')
-parser.add_argument('--file_name', default='youku', help='file name of the dataset, you should make sure it contains `train_1000.jsonl` file')
+parser.add_argument('--file_dir', default='/home/lpc/repos/Biaffine_NERs/datasets/few_shot', help='file name')
+parser.add_argument('--file_name', default='conll_2003', help='file name of the dataset, you should make sure it contains `train_1000.jsonl` file')
 parser.add_argument('--save_type_name', default='GLM4', help='the prefix name of save dir (usually is the LLM name)')
 parser.add_argument('--from_pretrained', default='/home/lpc/models/chinese-bert-wwm-ext/', help='model from pretrained')
 parser.add_argument('--model_from_pretrained', default='/home/lpc/repos/Biaffine_NERs/save_model/CNNNER-youku_1000_fusion_sota/cnnner_best', help='model from pretrained')
@@ -28,7 +28,7 @@ from transformers import BertTokenizer, BertConfig
 from main.predictor.fusion_ner_predictor import FusionNERPredictor
 
 DA_DIR = os.path.join(args.file_dir, args.file_name + f'_{args.save_type_name}_DA')
-LABEL_FILE = os.path.join(DA_DIR, 'label_fusion.json')
+LABEL_FILE = os.path.join(DA_DIR, 'labels.txt')
 SOURCE_FILE = os.path.join(DA_DIR, "1000", 'train_1000_synthetic.jsonl')
 
 tokenizer = BertTokenizer.from_pretrained(args.from_pretrained)
