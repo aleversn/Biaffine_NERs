@@ -22,10 +22,11 @@ class Predictor():
             lora_alpha=lora_alpha,
             lora_dropout=lora_dropout,
         )
+        self.model_from_pretrained = model_from_pretrained
         self.config = AutoConfig.from_pretrained(
             model_from_pretrained, trust_remote_code=True)
         self.tokenizer = AutoTokenizer.from_pretrained(
-            model_from_pretrained, trust_remote_code=True)
+            model_from_pretrained, padding_side="left", trust_remote_code=True)
         
         if self.config.model_type == 'chatglm':
             self.model = AutoModel.from_pretrained(
