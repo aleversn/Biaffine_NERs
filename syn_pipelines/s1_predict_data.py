@@ -5,17 +5,18 @@ from argparse import ArgumentParser
 # if you want to run through jupyter, please set it as false.
 import sys
 sys.path.append("../")
-cmd_args = True
+cmd_args = False
 # 添加 参数 n_gpu
 parser = ArgumentParser()
 parser.add_argument('--n_gpu', default=0, help='n_gpu')
 parser.add_argument('--skip', default=-1, help='skip the first n lines, the skip index is count from the start index of n-th chunks')
-parser.add_argument('--file_dir', default='./data/few_shot', help='file name')
-parser.add_argument('--file_name', default='cmeee', help='file name of the dataset, you should make sure it contains `train_1000.jsonl` file')
+parser.add_argument('--file_dir', default='/home/lpc/repos/Biaffine_NERs/datasets/few_shot', help='file name')
+parser.add_argument('--file_name', default='conll_2003', help='file name of the dataset, you should make sure it contains `train_1000.jsonl` file')
 parser.add_argument('--save_type_name', default='GLM4', help='the prefix name of save dir (usually is the LLM name)')
 parser.add_argument('--model_from_pretrained', default='/home/lpc/models/glm-4-9b-chat/', help='model from pretrained')
 parser.add_argument('--batch_size', default=20, help='batch size')
-parser.add_argument('--mode', default='entity', help='predict entity or pos')
+parser.add_argument('--dense_lang', default='0', help='whether the language is character-dense language')
+parser.add_argument('--mode', default='pos', help='predict entity or pos')
 
 if not cmd_args:
     args = parser.parse_args([]) # You can directly set above parameters in the default.
@@ -54,9 +55,10 @@ ori_data = [json.loads(i) for i in ori_data]
 selected_data = ori_data[int(args.skip):] if int(args.skip) > -1 else ori_data
 data = []
 
+SPLIT_TAG = '' if str(args.dense_lang) == '1' else ' '
 for item in tqdm(ori_data):
     text = item['text']
-    text = ''.join(text)
+    text = SPLIT_TAG.join(text)
     user_content = prompt_dict[MODE] + text
     data.append((user_content, text))
 

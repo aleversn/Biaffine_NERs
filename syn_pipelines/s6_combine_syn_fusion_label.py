@@ -7,11 +7,11 @@ from argparse import ArgumentParser
 # if you want to run through jupyter, please set it as false.
 import sys
 sys.path.append("../")
-cmd_args = True
+cmd_args = False
 # 添加 参数 n_gpu
 parser = ArgumentParser()
-parser.add_argument('--file_dir', default='./data/few_shot', help='file name')
-parser.add_argument('--file_name', default='youku', help='file name of the dataset, you should make sure it contains `train_1000.jsonl` file')
+parser.add_argument('--file_dir', default='/home/lpc/repos/Biaffine_NERs/datasets/few_shot', help='file name')
+parser.add_argument('--file_name', default='conll_2003', help='file name of the dataset, you should make sure it contains `train_1000.jsonl` file')
 parser.add_argument('--save_type_name', default='GLM4', help='the prefix name of save dir (usually is the LLM name)')
 
 if not cmd_args:

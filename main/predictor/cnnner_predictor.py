@@ -96,11 +96,20 @@ class Predictor():
             self.model.eval()
             for i in tqdm(range(num_batches)):
                 batch_inputs = inputs[i*self.batch_size:(i+1)*self.batch_size]
-                samples = [{
-                    'text': list(item),
-                    'entities': []
-                } for item in batch_inputs
-                ]
+                samples = []
+                for item in batch_inputs:
+                    if type(item) == str:
+                        samples.append({
+                            'text': list(item),
+                            'entities': []
+                        })
+                    elif type(item) == list:
+                        samples.append({
+                            'text': item,
+                            'entities': []
+                        })
+                    else:
+                        raise 'input type error'
                 transform_samples = []
                 for sample in samples:
                     tr = CNNNERDataset.transform(

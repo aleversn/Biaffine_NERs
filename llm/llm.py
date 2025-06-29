@@ -48,6 +48,7 @@ class Predictor():
         elif self.config.model_type == 'qwen2':
             self.model = AutoModelForCausalLM.from_pretrained(
                 self.model_from_pretrained, torch_dtype="auto", device_map="auto", trust_remote_code=True)
+            self.eos_token_id = self.config.eos_token_id
         self.model_to_device(gpu=self.num_gpus)
         self.model = self.model.eval()
 

@@ -38,6 +38,7 @@ class Trainer():
                  kernel_size: int = 3,
                  cnn_depth: int = 3,
                  warmup_steps: int = 190,
+                 k_shot: int = None,
                  eval_mode='test',
                  task_name='CNNNER',
                  **args):
@@ -65,6 +66,7 @@ class Trainer():
 
         self.warmup_steps = warmup_steps
 
+        self.k_shot = k_shot
         self.eval_mode = eval_mode
         self.pred_gold = []
 
@@ -129,12 +131,10 @@ class Trainer():
         collate_fn = CNNNERPadCollator()
 
         self.train_set = CNNNERDataset(
-            self.tokenizer, self.labelTokenizer, self.data_path['train'], shuffle=True)
-        if self.eval_mode == 'dev':
-            self.eval_set = CNNNERDataset(
-                self.tokenizer, self.labelTokenizer, self.data_path['dev'], shuffle=False)
-        else:
-            assert 'test' in self.data_path and self.data_path['test'] is not None
+            self.tokenizer, self.labelTokenizer, self.data_path['train'], k_shot=self.k_shot, shuffle=True)
+        self.eval_set = CNNNERDataset(
+            self.tokenizer, self.labelTokenizer, self.data_path['dev'], shuffle=False)
+        if 'test' in self.data_path and self.data_path['test'] is not None:
             self.test_set = CNNNERDataset(
                     self.tokenizer, self.labelTokenizer, self.data_path['test'], shuffle=False)
 

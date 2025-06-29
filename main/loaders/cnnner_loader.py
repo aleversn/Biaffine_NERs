@@ -11,14 +11,17 @@ import random
 
 class CNNNERDataset(Dataset):
 
-    def __init__(self, tokenizer: BertTokenizer, labelTokenizer: LabelTokenizer, filename: str, shuffle=False) -> None:
+    def __init__(self, tokenizer: BertTokenizer, labelTokenizer: LabelTokenizer, filename: str, k_shot=None, shuffle=False) -> None:
         super().__init__()
         self.tokenizer = tokenizer
         self.labelTokenizer = labelTokenizer
         self.filename = filename
         self.num_labels = len(self.labelTokenizer)-1
+        self.k_shot = k_shot
         self.data = self.load_jsonl()
         self.process_data = self.process_dataset()
+        if self.k_shot is not None:
+            self.process_data = self.k_shot_sample(self.process_data)
         self.shuffle_list = [i for i in range(len(self.process_data))]
         if shuffle:
             random.shuffle(self.shuffle_list)
@@ -87,6 +90,18 @@ class CNNNERDataset(Dataset):
         convert_sample['mask_ori'] = torch.tensor(mask_ori)
         convert_sample['is_synthetic'] = torch.tensor(is_synthetic, dtype=torch.long)
         return convert_sample
+    
+    def k_shot_sample(self, data):
+        ori_data = []
+        syn_data = []
+        for item in data:
+            if item['is_synthetic'].tolist() == 1:
+                syn_data.append(item)
+            else:
+                ori_data.append(item)
+        if len(syn_data) >= self.k_shot * 3:
+            syn_data = random.sample(syn_data, self.k_shot * 3)
+        return random.sample(ori_data, self.k_shot) + syn_data
 
     def __getitem__(self, index) -> Any:
         index = self.shuffle_list[index]
