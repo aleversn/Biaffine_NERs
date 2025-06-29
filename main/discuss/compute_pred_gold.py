@@ -1,11 +1,11 @@
 # %%
 import json
 
-with open('/home/lpc/repos/CNNNER/datasets/weibo/test.jsonl') as f:
+with open('/home/lpc/repos/CNNNER/datasets/few_shot/youku/test.jsonl') as f:
     ori_data = f.readlines()
 ori_data = [json.loads(i) for i in ori_data]
 
-with open('/home/lpc/repos/CNNNER/data_record/CNNNER-weibo_fusion_simple_filter1_sota/pred_gold_best.jsonl') as f:
+with open('/home/lpc/repos/CNNNER/data_record/CNNNER-youku_1000_fusion_sota/pred_gold_best.jsonl') as f:
     pred_gold = f.readlines()
 pred_gold = [json.loads(i) for i in pred_gold]
 

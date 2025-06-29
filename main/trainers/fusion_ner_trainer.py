@@ -130,11 +130,13 @@ class Trainer():
 
         self.train_set = CNNNERDataset(
             self.tokenizer, self.labelTokenizer, self.data_path['train'], shuffle=True)
-        self.eval_set = CNNNERDataset(
-            self.tokenizer, self.labelTokenizer, self.data_path['dev'], shuffle=False)
-        if 'test' in self.data_path and self.data_path['test'] is not None:
+        if self.eval_mode == 'dev':
+            self.eval_set = CNNNERDataset(
+                self.tokenizer, self.labelTokenizer, self.data_path['dev'], shuffle=False)
+        else:
+            assert 'test' in self.data_path and self.data_path['test'] is not None
             self.test_set = CNNNERDataset(
-                self.tokenizer, self.labelTokenizer, self.data_path['test'], shuffle=False)
+                    self.tokenizer, self.labelTokenizer, self.data_path['test'], shuffle=False)
 
         self.train_loader = DataLoader(
             self.train_set, self.batch_size, collate_fn=collate_fn)

@@ -56,8 +56,8 @@ def get_distance(list1, list2):
     list1_norm = list1 / list1.norm(dim=1, keepdim=True)
     list2_norm = list2 / list2.norm(dim=1, keepdim=True)
 
-    cosine_distances = 1 - torch.mm(list1_norm, list2_norm.T)
-    return cosine_distances
+    cos_sim = torch.mm(list1_norm, list2_norm.T)
+    return cos_sim
 
 label_dict = {
     'OTHER': ['OTHER', 'other']
@@ -104,8 +104,8 @@ from_pretrained_path = '/home/lpc/models/simcse-chinese-roberta-wwm-ext/'
 tokenizer = AutoTokenizer.from_pretrained(from_pretrained_path)
 model = AutoModel.from_pretrained(from_pretrained_path)
 
-ORI_FILE = '/home/lpc/repos/CNNNER/datasets/few_shot/resume/train_1000.jsonl'
-EXT_FILE = '/home/lpc/repos/CNNNER/datasets/few_shot/resume_DA/1000/entity_train_1000.jsonl'
+ORI_FILE = '/home/lpc/repos/CNNNER/datasets/few_shot/ud/train_1000.jsonl'
+EXT_FILE = '/home/lpc/repos/CNNNER/datasets/few_shot/ud_DA/1000/entity_train_1000.jsonl'
 
 with open(ORI_FILE) as f:
     ori_data = f.readlines()
@@ -128,7 +128,7 @@ emb_entities = {}
 
 for key in tqdm(ori_entities, total=len(ori_entities)):
     texts = ori_entities[key]
-    embeddings = batcher(model, tokenizer, texts, batch_size=256, gpu=[0, 1])
+    embeddings = batcher(model, tokenizer, texts, batch_size=256, gpu=[0])
     emb_entities[key] = embeddings
 
 # %%
@@ -163,7 +163,7 @@ for item in ext_data:
 
 for key in tqdm(ext_entities, total=len(ext_entities)):
     texts = ext_entities[key]
-    embeddings = batcher(model, tokenizer, texts, batch_size=256, gpu=[0, 1])
+    embeddings = batcher(model, tokenizer, texts, batch_size=256, gpu=[0])
     emb_ext_entities[key] = embeddings
 
 # %%
@@ -180,7 +180,7 @@ for ext_key in tqdm(emb_ext_entities, total=len(emb_ext_entities)):
 table = PrettyTable()
 table.field_names = ['Ext/Ori'] + [key for key in ori_entities]
 for idx, key in enumerate(tqdm(emb_ext_entities, total=len(emb_ext_entities))):
-    table.add_row([key] + [str(round(score * 100, 2)) for score in result[idx]])
+    table.add_row([key] + [str(round(score, 4)) for score in result[idx]])
 print(table)
 
 # cos_socres = get_distance(emb_sts, emb_wiki)

@@ -5,15 +5,15 @@ import json
 from transformers import BertTokenizer, BertConfig
 from main.predictor.fusion_ner_predictor import FusionNERPredictor
 
-LABEL_FILE = '/home/lpc/repos/CNNNER/datasets/few_shot/weibo_DA/labels_fusion.json'
-SOURCE_FILE = '/home/lpc/repos/CNNNER/datasets/few_shot/weibo_DA/1000/train_1000_synthetic.jsonl'
-SAVE_FILE = '/home/lpc/repos/CNNNER/datasets/few_shot/weibo_DA/1000/train_1000_synthetic.jsonl1'
+LABEL_FILE = '/home/lpc/repos/CNNNER/datasets/few_shot/cmeee_DA/labels_fusion.json'
+SOURCE_FILE = '/home/lpc/repos/CNNNER/datasets/few_shot/cmeee_DA/1000/train_1000_synthetic.jsonl'
+SAVE_FILE = '/home/lpc/repos/CNNNER/datasets/few_shot/cmeee_DA/1000/train_1000_synthetic.jsonl1'
 
 tokenizer = BertTokenizer.from_pretrained(
     "/home/lpc/models/chinese-bert-wwm-ext/")
 config = BertConfig.from_pretrained(
     "/home/lpc/models/chinese-bert-wwm-ext/")
-pred = FusionNERPredictor(tokenizer=tokenizer, config=config, from_pretrained='/home/lpc/repos/CNNNER/save_model/CNNNER-weibo_1000_fusion/cnnner_best',
+pred = FusionNERPredictor(tokenizer=tokenizer, config=config, from_pretrained='/home/lpc/repos/CNNNER/save_model/CNNNER-cmeee_1000_fusion/cnnner_best',
                           label_file=LABEL_FILE, batch_size=4)
 
 # %%
